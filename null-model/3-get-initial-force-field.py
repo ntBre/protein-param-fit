@@ -16,7 +16,7 @@ from pathlib import Path
     '-l',
     '--library_charge_ff',
     default = Path(
-        '..', '..', 'library-charges', 'protein-library-charges.offxml'
+        '..', 'library-charges', 'protein-library-charges.offxml'
     ),
     show_default = True,
     type = click.STRING,
