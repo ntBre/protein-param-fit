@@ -90,18 +90,18 @@ def main(input_ff, smirks_dir):
         TorsionProfileTargetSchema(
             reference_data = torsion_training_set[label],
             weight = torsion_weights[label],
-            energy_denominator = 1.0,
-            energy_cutoff = 5.0,
+            energy_denominator = 5.0,
+            energy_cutoff = 20.0,
             extras = {'remote': '1'},
         )
         for label in torsion_training_set
     ]
     forcebalance_targets.append(
         OptGeoTargetSchema(
-            reference_data=optimization_training_set,
-            weight=0.1,
-            #extras={'batch_size': 30, 'remote': '1'},
-            extras={'batch_size': 1, 'remote': '1'},
+            reference_data = optimization_training_set,
+            weight = 0.1,
+            #extras = {'batch_size': 30, 'remote': '1'},
+            extras = {'batch_size': 1, 'remote': '1'},
         )
     )
 
@@ -163,7 +163,11 @@ def main(input_ff, smirks_dir):
                     gradient_convergence_threshold = 0.1,
                     n_criteria = 2,
                     initial_trust_radius = -1.0,
-                    extras = {'wq_port': '55125', 'asynchronous': 'True'},
+                    extras = {
+                        'asynchronous': 'True',
+                        'search_tolerance': 1,
+                        'wq_port': '55125',
+                    },
                 ),
                 targets = forcebalance_targets,
                 # Define the parameters to refit and the priors to place on them
