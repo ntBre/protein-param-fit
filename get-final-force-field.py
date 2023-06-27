@@ -35,7 +35,7 @@ def main(input_ff, output_ff):
         'id': 'c1',
         'smirks': '[#1:1]-[*:2]',
     }
-    constraint_handler.add_parameter(covalent_h_bond_constraint)
+    constraint_handler.add_parameter(covalent_h_bond_constraint, before = 0)
 
     # Write force field including covalent hydrogen bond constraint without
     # cosmetic attributes from ForceBalance
