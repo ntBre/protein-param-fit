@@ -75,12 +75,19 @@ def main(dataset_dir):
     torsiondrive_dataset = TorsionDriveResultCollection.from_server(
         client = client,
         datasets = [
-            'OpenFF Gen 2 Torsion Set 1 Roche 2',
-            'OpenFF Gen 2 Torsion Set 2 Coverage 2',
-            'OpenFF Gen 2 Torsion Set 3 Pfizer Discrepancy 2',
-            'OpenFF Gen 2 Torsion Set 4 eMolecules Discrepancy 2',
-            'OpenFF Gen 2 Torsion Set 5 Bayer 2',
-            'OpenFF Gen 2 Torsion Set 6 supplemental 2',
+            "SMIRNOFF Coverage Torsion Set 1",
+            "OpenFF Group1 Torsions",
+            "OpenFF Group1 Torsions 2",
+            "OpenFF Group1 Torsions 3",
+            "OpenFF Gen 2 Torsion Set 1 Roche 2",
+            "OpenFF Gen 2 Torsion Set 2 Coverage 2",
+            "OpenFF Gen 2 Torsion Set 3 Pfizer Discrepancy 2",
+            "OpenFF Gen 2 Torsion Set 4 eMolecules Discrepancy 2",
+            "OpenFF Gen 2 Torsion Set 5 Bayer 2",
+            "OpenFF Gen 2 Torsion Set 6 supplemental 2",
+            "OpenFF Gen3 Torsion Set v1.0",
+            "OpenFF Amide Torsion Set v1.0",
+            "OpenFF WBO Conjugated Series v1.0"
         ],
         spec_name = 'default',
     )

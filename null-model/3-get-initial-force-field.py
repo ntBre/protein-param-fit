@@ -54,7 +54,7 @@ def main(input_ff, library_charge_ff, output_ff):
             'reference_id': 't18',
             'smirks': '[*:1]-[#6X4:2]-[#6X3:3](~!@[#7X3])~!@[#7X3:4]',
         },
-        # Carboxylate
+        # Carboxylate from sp3 carbon
         {
             'label': 't18a',
             'reference_id': 't18',
@@ -65,6 +65,7 @@ def main(input_ff, library_charge_ff, output_ff):
             'reference_id': 't19',
             'smirks': '[#1:1]-[#6X4:2]-[#6X3:3](~[#8X1])~[#8X1:4]',
         },
+        # Carboxylate from three-membered ring
         {
             'label': 't31a',
             'reference_id': 't31',
@@ -75,10 +76,22 @@ def main(input_ff, library_charge_ff, output_ff):
             'reference_id': 't42',
             'smirks': '[#6X4;r3:1]-;@[#6X4;r3:2]-[#6X3:3](~[#8X1])~[#8X1:4]',
         },
+        # Carboxylate from sp2 carbon
         {
             'label': 't48a',
             'reference_id': 't48',
             'smirks': '[#6X3:1]=[#6X3:2]-[#6X3:3](~[#8X1])~[#8X1:4]',
+        },
+        # Carboxylate from sp2 nitrogen
+        {
+            'label': 't75a',
+            'reference_id': 't75',
+            'smirks': '[*:1]-[#7X3:2]-[#6X3:3](~[#8X1])~[#8X1:4]',
+        },
+        {
+            'label': 't76a',
+            'reference_id': 't76',
+            'smirks': '[#1:1]-[#7X3:2]-[#6X3:3](~[#8X1])~[#8X1:4]',
         },
         # Nitro from sp2 carbon (nitro from sp3 carbon is covered by t65)
         {
@@ -90,6 +103,14 @@ def main(input_ff, library_charge_ff, output_ff):
             'label': 't83a',
             'reference_id': 't83',
             'smirks': '[*:1]=,:[#6X3:2]-[#7X3:3](~[#8X1])~[#8X1:4]',
+        },
+        # Nitro from sp2 nitrogen
+        {
+            'label': 't134a',
+            'reference_id': 't134',
+            'smirks': (
+                '[#8X1:1]~[#7X3:2](~[#8X1])-[#7X3$(*~[#6X3,#6X2]):3]~[*:4]'
+            ),
         },
         # Guanidinium
         {
@@ -104,7 +125,7 @@ def main(input_ff, library_charge_ff, output_ff):
         {
             'label': 'b13a',
             'reference_id': 'b13',
-            'smirks': '[#6X3:1](~!@[#7X3])(~!@[#7X3])~!@[#7X3:2]',
+            'smirks': '[#6X3:1](~!@[#6,#7;X3])(~!@[#7X3])~!@[#7X3:2]',
         },
     ]
 
