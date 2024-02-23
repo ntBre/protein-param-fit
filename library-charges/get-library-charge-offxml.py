@@ -15,6 +15,14 @@ from residue_smirks import RESIDUE_SMIRKS
     help = 'File path to the protein library charges.',
 )
 @click.option(
+    '-n',
+    '--nh2-library_charges',
+    default = Path('mean-charges', 'nh2-mean-charges.dat'),
+    show_default = True,
+    type = click.STRING,
+    help = 'File path to the NH2 cap library charges.',
+)
+@click.option(
     '-o',
     '--output_ff',
     default = 'protein-library-charges.offxml',
@@ -22,7 +30,9 @@ from residue_smirks import RESIDUE_SMIRKS
     type = click.STRING,
     help = 'File path to which the output force field will be written.',
 )
-def main(library_charges, output_ff):
+def main(library_charges, nh2_library_charges, output_ff):
+
+    nh2_smirks = '[#7X3]-[#6X4]-[#6X3](=[#8])-[#7:1](-[#1:2])-[#1:3]'
 
     # Dictionary of SMIRNOFF LibraryCharge parameter dictionaries, indexed by
     # residue name
@@ -39,6 +49,32 @@ def main(library_charges, output_ff):
             residue = residue.upper()
 
             if residue not in residues:
+
+                # Add NH2 cap immediately before NME cap
+                if residue == 'NME':
+                    with open(nh2_library_charges, 'r') as nh2_library_charge_file:
+                        for nh2_line in nh2_library_charge_file:
+
+                            nh2_residue, nh2_atom, nh2_charge = nh2_line.split()
+
+                            if nh2_residue != 'Nh2':
+                                continue
+
+                            nh2_residue = 'NH2'
+
+                            if nh2_residue not in residues:
+
+                                residues.append(nh2_residue)
+                                charge_idx = 0
+                                library_charge_dicts[nh2_residue] = {
+                                    'smirks': nh2_smirks,
+                                    'id': f'Protein-{nh2_residue}',
+                                }
+
+                            charge_idx += 1
+                            library_charge_dicts[nh2_residue][f'charge{charge_idx}'] = (
+                                nh2_charge * unit.elementary_charge
+                            )
 
                 smirks = RESIDUE_SMIRKS[residue]
 
@@ -63,7 +99,7 @@ def main(library_charges, output_ff):
                     and residue != 'NME'
                 ):
 
-                    smirks = smirks + '-[#7X3]-[#6X4]'
+                    smirks = smirks + '-[#7X3;$(*-[#6X4]),H2]'
 
                 residues.append(residue)
                 charge_idx = 0
