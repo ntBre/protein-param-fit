@@ -1,11 +1,11 @@
 #!/bin/bash
 
-#python 1-get-initial-force-field.py                                          \
-#    --input-force-field          "../null-model/initial-force-field.offxml", \
-#    --reference-force-field      "ff14sb_off_impropers_0.0.3.offxml",        \
+#python 1-get-initial-force-field.py                                         \
+#    --input-force-field          "../null-model/initial-force-field.offxml" \
+#    --reference-force-field      "ff14sb_off_impropers_0.0.3.offxml"        \
 #    --output-force-field         "initial-force-field.offxml"
 
-#python ../2-curate-training-datasets.py download-optimization                      \
+#python 2-curate-training-datasets.py download-optimization                      \
 #    --core-opt-dataset      "OpenFF Gen 2 Opt Set 1 Roche"                         \
 #    --core-opt-dataset      "OpenFF Gen 2 Opt Set 2 Coverage"                      \
 #    --core-opt-dataset      "OpenFF Gen 2 Opt Set 3 Pfizer Discrepancy"            \
@@ -22,9 +22,10 @@
 #    --max-opt-conformers    12                                                     \
 #    --output-dataset-path   "training-datasets/optimization-training-dataset.json" \
 #    --output-smirks-path    "training-datasets/optimization-training-smirks.json"  \
+#    --select-parameters-only                                                       \
 #    --verbose
 
-#python ../2-curate-training-datasets.py download-torsiondrive                       \
+#python 2-curate-training-datasets.py download-torsiondrive                       \
 #    --core-td-dataset        "OpenFF Gen 2 Torsion Set 1 Roche 2"                   \
 #    --core-td-dataset        "OpenFF Gen 2 Torsion Set 2 Coverage 2"                \
 #    --core-td-dataset        "OpenFF Gen 2 Torsion Set 3 Pfizer Discrepancy 2"      \
@@ -51,6 +52,7 @@
 #    --n-processes            8                                                      \
 #    --output-dataset-path    "training-datasets/torsiondrive-training-dataset.json" \
 #    --output-smirks-path     "training-datasets/torsiondrive-training-smirks.json"  \
+#    --select-parameters-only                                                        \
 #    --verbose
 
 #python ../3-get-msm-parameters.py                                                 \
@@ -61,8 +63,8 @@
 #    --verbose
 
 python ../4-create-forcebalance-inputs.py                                              \
-    --tag                       "default-weights/tmp-forcebalance"                     \
-    --force-field-path          "tmp-msm-force-field.offxml"                           \
+    --tag                       "forcebalance"                                         \
+    --force-field-path          "msm-force-field.offxml"                               \
     --optimization-dataset-path "training-datasets/optimization-training-dataset.json" \
     --torsiondrive-dataset-path "training-datasets/torsiondrive-training-dataset.json" \
     --valence-smirks-path       "training-datasets/optimization-training-smirks.json"  \
@@ -70,6 +72,8 @@ python ../4-create-forcebalance-inputs.py                                       
     --smarts-to-exclude         "../smarts-to-exclude.dat"                             \
     --smiles-to-exclude         "../smiles-to-exclude.dat"                             \
     --protein-record-ids-path   "../protein-record-ids.dat"                            \
+    --opt-geo-weight            0.005                                                  \
+    --protein-torsiondrive-weight 10.0                                                 \
     --port                      55126                                                  \
     --verbose
 
