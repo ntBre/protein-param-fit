@@ -61,7 +61,7 @@
 #    --verbose
 
 python ../4-create-forcebalance-inputs.py                                              \
-    --tag                       "tmp-forcebalance"                                     \
+    --tag                       "abinitio/tmp-forcebalance"                            \
     --force-field-path          "tmp-msm-force-field.offxml"                           \
     --optimization-dataset-path "training-datasets/optimization-training-dataset.json" \
     --torsiondrive-dataset-path "training-datasets/torsiondrive-training-dataset.json" \
@@ -71,7 +71,8 @@ python ../4-create-forcebalance-inputs.py                                       
     --smiles-to-exclude         "../smiles-to-exclude.dat"                             \
     --protein-record-ids-path   "../protein-record-ids.dat"                            \
     --opt-geo-weight            0.005                                                  \
-    --protein-torsiondrive-weight 10.0                                                 \
     --port                      55125                                                  \
+    --torsiondrive-weight       0.01                                                   \
+    --torsiondrive-target-type  "AbInitio"                                             \
     --verbose
 

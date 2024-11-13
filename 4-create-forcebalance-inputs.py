@@ -16,6 +16,7 @@ from openff.bespokefit.schema.smirnoff import (
     ProperTorsionSMIRKS,
 )
 from openff.bespokefit.schema.targets import (
+    AbInitioTargetSchema,
     OptGeoTargetSchema,
     TorsionProfileTargetSchema,
 )
@@ -150,11 +151,42 @@ def load_training_data(
     help="The maximum number of iterations to run the fitting for.",
 )
 @click.option(
+    "--opt-geo-weight",
+    type=float,
+    default=0.01,
+    show_default=True,
+    help="The weight of optimized geometry targets in the ForceBalance "
+        "objective function.",
+)
+@click.option(
+    "--protein-torsiondrive-weight",
+    type=float,
+    default=1.0,
+    show_default=True,
+    help="The weight of protein TorsionDrive targets in the ForceBalance "
+        "objective function.",
+)
+@click.option(
     "--port",
     type=int,
     default=55125,
     show_default=True,
     help="The port to run the server on.",
+)
+@click.option(
+    "--torsiondrive-target-type",
+    type=str,
+    default="TorsionProfile",
+    show_default=True,
+    help="The ForceBalance target type for TorsionDrive QC data.",
+)
+@click.option(
+    "--torsiondrive-weight",
+    type=float,
+    default=1.0,
+    show_default=True,
+    help="The weight of TorsionDrive targets in the ForceBalance objective "
+        "function.",
 )
 def main(
     tag: str,
@@ -168,7 +200,11 @@ def main(
     protein_record_ids_path: str | None,
     verbose: bool,
     max_iterations: int,
+    opt_geo_weight: float,
+    protein_torsiondrive_weight: float,
     port: int,
+    torsiondrive_target_type: str,
+    torsiondrive_weight: float,
 ):
     optimizer = ForceBalanceSchema(
         max_iterations=max_iterations,
@@ -187,6 +223,7 @@ def main(
         },
     )
 
+    # Prepare QC datasets
     torsion_training_set, optimization_training_set = load_training_data(
         optimization_dataset=optimization_dataset_path,
         torsiondrive_dataset=torsiondrive_dataset_path,
@@ -195,19 +232,39 @@ def main(
         verbose=verbose
     )
 
-    # Split TorsionDrive dataset into protein and small molecule datasets
+    # Set up options for TorsionDrive QC data
+    torsiondrive_extras = {"remote": "1"}
+    if torsiondrive_target_type == "TorsionProfile":
+        torsiondrive_target_schema_type = TorsionProfileTargetSchema
+    elif torsiondrive_target_type == "AbInitio":
+        torsiondrive_target_schema_type = AbInitioTargetSchema
+        torsiondrive_extras["energy_asymmetry"] = 100.0
+        torsiondrive_extras["energy_mode"] = "qm_minimum"
+    else:
+        raise ValueError(
+            "Argument torsiondrive-target-type must be one of:"
+            "\n    TorsionProfile\n    AbInitio"
+        )
+
+    # Set up TorsionDrive target schemas
     if protein_record_ids_path is None:
         torsion_profile_target_schemas = [
-            TorsionProfileTargetSchema(
+            torsiondrive_target_schema_type(
                 reference_data=torsion_training_set,
+                weight=torsiondrive_weight,
+                attenuate_weights=True,
                 energy_denominator=1.0,
                 energy_cutoff=8.0,
-                extras={"remote": "1"},
+                extras=torsiondrive_extras,
             )
         ]
 
     else:
-        protein_record_ids = Path(protein_record_ids_path).read_text().splitlines()
+        # Split TorsionDrive dataset into protein and small molecule datasets
+        protein_record_ids = {
+            int(record_id)
+            for record_id in Path(protein_record_ids_path).read_text().splitlines()
+        }
         client_address = list(torsion_training_set.entries.keys())[0]
 
         protein_entries = [
@@ -229,18 +286,21 @@ def main(
         )
 
         torsion_profile_target_schemas = [
-            TorsionProfileTargetSchema(
+            torsiondrive_target_schema_type(
                 reference_data=protein_torsion_training_set,
-#                weight=10.0,
+                weight=protein_torsiondrive_weight,
+                attenuate_weights=True,
                 energy_denominator=1.0,
                 energy_cutoff=8.0,
-                extras={"remote": "1"},
+                extras=torsiondrive_extras,
             ),
-            TorsionProfileTargetSchema(
+            torsiondrive_target_schema_type(
                 reference_data=small_molecule_torsion_training_set,
+                weight=torsiondrive_weight,
+                attenuate_weights=True,
                 energy_denominator=1.0,
                 energy_cutoff=8.0,
-                extras={"remote": "1"},
+                extras=torsiondrive_extras,
             )
         ]
 
@@ -248,8 +308,7 @@ def main(
         *torsion_profile_target_schemas,
         OptGeoTargetSchema(
             reference_data=optimization_training_set,
-            weight=0.01,
-#            weight=0.005,
+            weight=opt_geo_weight,
             extras={"batch_size": 30, "remote": "1"},
             bond_denominator=0.05,
             angle_denominator=5.0,
