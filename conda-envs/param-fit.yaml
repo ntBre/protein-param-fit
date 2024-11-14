@@ -3,9 +3,6 @@ channels:
   - conda-forge
   - openeye
 dependencies:
-  - black
-  - click
-  - isort
   - jupyter
   - mamba
   - python
@@ -17,13 +14,14 @@ dependencies:
   - conda-forge::libiconv
   - ndcctools
   - openeye-toolkits=2022.1.1
-  - openff-bespokefit
+  - openff-bespokefit>=0.3.0
   - openff-interchange>=0.3.18
   - openff-forcefields
+  - openff-nagl
   - openff-qcsubmit>=0.50.1
-  - openff-toolkit>=0.14.5
+  - openff-toolkit>=0.16.0
   - openmm 
-  - openmmforcefields
+  - openmmforcefields>=0.12.0
   - pymbar=3.1.0
   - qcportal
   - qubekit
