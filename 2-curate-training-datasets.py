@@ -613,6 +613,8 @@ def download_torsiondrive(
     if verbose:
         print(f"Number of entries after charge filter: {filtered_for_charge.n_results}")
 
+    Path(output_dataset_path).parent.mkdir(exist_ok=True)
+
     with open(output_dataset_path, "w") as json_file:
         json_file.write(filtered_for_charge.json(indent=2))
     if verbose:
@@ -840,6 +842,8 @@ def download_optimization(
 
     if verbose:
         print(f"Number of entries after charge filter: {filtered_for_charge.n_results}")
+
+    Path(output_dataset_path).parent.mkdir(exist_ok=True)
 
     with open(output_dataset_path, "w") as json_file:
         json_file.write(filtered_for_charge.json(indent=2))
