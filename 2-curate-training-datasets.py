@@ -26,9 +26,9 @@ from openff.qcsubmit.results.filters import (
     SinglepointRecordFilter,
     UnperceivableStereoFilter,
 )
+from openff.qcsubmit.utils import _CachedPortalClient, portal_client_manager
 from openff.toolkit import ForceField, Molecule
 from openff.toolkit.utils.exceptions import UnassignedMoleculeChargeException
-from qcportal import PortalClient
 from qcportal.optimization import OptimizationRecord
 from qcportal.record_models import RecordStatusEnum
 from qcportal.torsiondrive import TorsiondriveRecord
@@ -146,7 +146,10 @@ def get_parameter_distribution(
         parameter_types=parameter_types,
         explicit_ring_torsion_path=explicit_ring_torsion_path,
     )
-    with multiprocessing.Pool(n_processes) as pool:
+    client = _CachedPortalClient("api.qcarchive.molssi.org:443", ".")
+    with multiprocessing.Pool(n_processes) as pool, portal_client_manager(
+        lambda _: client
+    ):
         for parameter_ids in tqdm.tqdm(
             pool.imap(func, dataset.to_records()),
             total=dataset.n_results,
@@ -243,7 +246,7 @@ def download_and_filter_td_data(
             torsiondrive_records_to_remove_path, dtype=int
         )
 
-    client = PortalClient("api.qcarchive.molssi.org:443")
+    client = _CachedPortalClient("api.qcarchive.molssi.org:443", ".")
 
     if filter_incomplete_records:
         dataset = TorsionDriveResultCollection.from_server(
@@ -668,7 +671,7 @@ def download_and_filter_opt_data(
             optimization_records_to_remove, dtype=int
         )
 
-    client = PortalClient("api.qcarchive.molssi.org:443")
+    client = _CachedPortalClient("api.qcarchive.molssi.org:443", ".")
     dataset = OptimizationResultCollection.from_server(
         client=client,
         datasets=optimization_datasets,
