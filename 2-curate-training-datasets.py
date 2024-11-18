@@ -4,7 +4,6 @@ import logging
 import multiprocessing
 import random
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Literal
@@ -37,7 +36,9 @@ from qcportal.torsiondrive import TorsiondriveRecord
 # Union types for type hints
 QCPortalRecord = OptimizationRecord | TorsiondriveRecord
 QCSubmitResult = OptimizationResult | TorsionDriveResult
-QCSubmitResultCollection = OptimizationResultCollection | TorsionDriveResultCollection
+QCSubmitResultCollection = (
+    OptimizationResultCollection | TorsionDriveResultCollection
+)
 
 
 class ChargeCheckFilter(SinglepointRecordFilter):
@@ -56,7 +57,9 @@ class ChargeCheckFilter(SinglepointRecordFilter):
             with NamedTemporaryFile(suffix=".sdf") as tmp_file:
                 molecule.to_file(tmp_file.name, "SDF")
                 molecule = Molecule.from_file(tmp_file.name)
-                molecule.assign_partial_charges(partial_charge_method="am1bccelf10")
+                molecule.assign_partial_charges(
+                    partial_charge_method="am1bccelf10"
+                )
 
         except (UnassignedMoleculeChargeException, ValueError):
             can_be_charged = False
@@ -72,11 +75,11 @@ def check_torsion_is_in_ring(
     Check if a torsion is in a ring. If a torsion I-J-K-L is given, it checks
     whether all bonds I-J, J-K, and K-L are in a ring.
     """
-    i, j, k, l = indices
+    i, j, k, ll = indices
     return (
         molecule.get_bond_between(i, j).is_in_ring()
         and molecule.get_bond_between(j, k).is_in_ring()
-        and molecule.get_bond_between(k, l).is_in_ring()
+        and molecule.get_bond_between(k, ll).is_in_ring()
     )
 
 
@@ -89,7 +92,9 @@ def label_and_tag_ids(
     if explicit_ring_torsion_path is None:
         explicit_ring_torsions = []
     else:
-        explicit_ring_torsions = numpy.loadtxt(explicit_ring_torsion_path, dtype=str)
+        explicit_ring_torsions = numpy.loadtxt(
+            explicit_ring_torsion_path, dtype=str
+        )
 
     record, molecule = record_and_molecule
     mol_labels = force_field.label_molecules(molecule.to_topology())[0]
@@ -117,7 +122,9 @@ def label_and_tag_ids(
                     if check_torsion_is_in_ring(molecule, parameter_indices):
                         continue
 
-            n_heavy_atoms = sum(1 for atom in molecule.atoms if atom.atomic_number != 1)
+            n_heavy_atoms = sum(
+                1 for atom in molecule.atoms if atom.atomic_number != 1
+            )
             parameter_ids.add((parameter.id, record.id, n_heavy_atoms))
 
     return parameter_ids
@@ -146,7 +153,9 @@ def get_parameter_distribution(
         ):
             for parameter_id, record_id, n_heavy_atoms in parameter_ids:
                 coverage[parameter_id] += 1
-                parameter_records[parameter_id].append((n_heavy_atoms, record_id))
+                parameter_records[parameter_id].append(
+                    (n_heavy_atoms, record_id)
+                )
 
     return coverage, dict(parameter_records)
 
@@ -174,11 +183,15 @@ def cap_torsions_per_parameter(
         else:
             if method == "pick_heavy":
                 n_atom_records = sorted(
-                    parameter_records[parameter_id], key=lambda x: x[0], reverse=True
+                    parameter_records[parameter_id],
+                    key=lambda x: x[0],
+                    reverse=True,
                 )[:cap_size]
             elif method == "pick_light":
                 n_atom_records = sorted(
-                    parameter_records[parameter_id], key=lambda x: x[0], reverse=False
+                    parameter_records[parameter_id],
+                    key=lambda x: x[0],
+                    reverse=False,
                 )[:cap_size]
             elif method == "pick_random":
                 n_atom_records = random.sample(
@@ -197,7 +210,9 @@ def cap_torsions_per_parameter(
             )
 
     ids_to_keep = [
-        record_id for record_ids in records_to_keep.values() for record_id in record_ids
+        record_id
+        for record_ids in records_to_keep.values()
+        for record_id in record_ids
     ]
     print(f"Total records: {dataset.n_results}")
     print(f"Total records to keep: {len(ids_to_keep)}")
@@ -245,7 +260,7 @@ def download_and_filter_td_data(
         for dataset in qcportal_datasets:
             dataset.fetch_entries()
             for entry_name, spec_name, record in dataset.iterate_records(
-                specification_names="default",  # status=RecordStatusEnum.complete
+                specification_names="default", status=RecordStatusEnum.complete
             ):
                 entry = dataset.get_entry(entry_name)
                 cmiles = entry.attributes[
@@ -291,7 +306,9 @@ def download_and_filter_td_data(
         ConnectivityFilter(tolerance=1.2),
     ]
     if filter_incomplete_records:
-        dataset_filters.append(RecordStatusFilter(status=RecordStatusEnum.complete))
+        dataset_filters.append(
+            RecordStatusFilter(status=RecordStatusEnum.complete)
+        )
     if filter_hydrogen_bonds:
         dataset_filters.append(HydrogenBondFilter(method="baker-hubbard"))
     dataset = dataset.filter(*dataset_filters)
@@ -391,7 +408,7 @@ def cli():
     "explicit_ring_torsions",
     type=click.Path(exists=True, dir_okay=False, file_okay=True),
     help=(
-        "The path to a file containing a list of parameter IDs that are ring torsions. "
+        "The path to a file containing a list of ring torsion parameter IDs. "
         "This should be a text file with one ID per line."
     ),
 )
@@ -459,8 +476,8 @@ def cli():
     default=5,
     show_default=True,
     help=(
-        "The minimum number of records a parameter must have to be included in the "
-        "force field optimization."
+        "The minimum number of records a parameter must have to be included "
+        "in the force field optimization."
     ),
 )
 def download_torsiondrive(
@@ -481,15 +498,15 @@ def download_torsiondrive(
     n_processes: int = 8,
     min_record_coverage: int = 5,
 ):
-    """
-    Download TorsionDrive data in stages.
+    """Download TorsionDrive data in stages.
     \f
 
     1. Download the core datasets and filter out unsuitable entries.
     2. Download the auxiliary datasets and filter out unsuitable entries.
-    3. Cap the number of auxiliary torsions per parameter to a maximum of ``cap_size``.
-       This can be done by picking random torsions, or selecting those
-       with the least (``pick_light``) or most (``pick_heavy``) heavy atoms.
+    3. Cap the number of auxiliary torsions per parameter to a maximum of
+       ``cap_size``. This can be done by picking random torsions, or selecting
+       those with the least (``pick_light``) or most (``pick_heavy``) heavy
+       atoms.
     4. Add additional torsiondrive records from a file.
     5. Filter out duplicate torsiondrive records.
     6. Filter out molecules that fail AM1-BCC ELF10 charging. This step
@@ -605,13 +622,16 @@ def download_torsiondrive(
         entries={key: list(unique_entries.values())}
     )
     if verbose:
-        print(f"Number of entries after deduplication: {new_dataset.n_results}")
+        print(
+            f"Number of entries after deduplication: {new_dataset.n_results}"
+        )
 
     # Filter molecules that can't be assigned partial charges
     filtered_for_charge = new_dataset.filter(ChargeCheckFilter())
 
     if verbose:
-        print(f"Number of entries after charge filter: {filtered_for_charge.n_results}")
+        n = filtered_for_charge.n_results
+        print(f"Number of entries after charge filter: {n}")
 
     Path(output_dataset_path).parent.mkdir(exist_ok=True)
 
@@ -770,8 +790,8 @@ def download_and_filter_opt_data(
     default=5,
     show_default=True,
     help=(
-        "The minimum number of records a parameter must have to be included in the "
-        "force field optimization."
+        "The minimum number of records a parameter must have to be included "
+        "in the force field optimization."
     ),
 )
 def download_optimization(
@@ -835,13 +855,16 @@ def download_optimization(
     )
 
     if verbose:
-        print(f"Number of entries after deduplication: {new_dataset.n_results}")
+        print(
+            f"Number of entries after deduplication: {new_dataset.n_results}"
+        )
 
     # Filter molecules that can't be assigned partial charges
     filtered_for_charge = new_dataset.filter(ChargeCheckFilter())
 
     if verbose:
-        print(f"Number of entries after charge filter: {filtered_for_charge.n_results}")
+        n = filtered_for_charge.n_results
+        print(f"Number of entries after charge filter: {n}")
 
     Path(output_dataset_path).parent.mkdir(exist_ok=True)
 
