@@ -146,12 +146,14 @@ def get_parameter_distribution(
         parameter_types=parameter_types,
         explicit_ring_torsion_path=explicit_ring_torsion_path,
     )
+
     client = _CachedPortalClient("api.qcarchive.molssi.org:443", ".")
-    with multiprocessing.Pool(n_processes) as pool, portal_client_manager(
-        lambda _: client
-    ):
+    with portal_client_manager(lambda _: client):
+        records = dataset.to_records()
+
+    with multiprocessing.Pool(n_processes) as pool:
         for parameter_ids in tqdm.tqdm(
-            pool.imap(func, dataset.to_records()),
+            pool.imap(func, records),
             total=dataset.n_results,
         ):
             for parameter_id, record_id, n_heavy_atoms in parameter_ids:
