@@ -88,7 +88,7 @@ class ChargeCheckFilter(SinglepointRecordFilter):
 
             filtered_ids = []
             with multiprocessing.Pool(processes=self.nprocs) as p:
-                for record_id, ok in tqdm(
+                for record_id, ok in tqdm.tqdm(
                     p.imap(
                         imap_fn,
                         records_and_molecules,
