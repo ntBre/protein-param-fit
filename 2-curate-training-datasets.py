@@ -151,16 +151,13 @@ def get_parameter_distribution(
     with portal_client_manager(lambda _: client):
         records = dataset.to_records()
 
-    with multiprocessing.Pool(n_processes) as pool:
-        for parameter_ids in tqdm.tqdm(
-            pool.imap(func, records),
-            total=dataset.n_results,
-        ):
-            for parameter_id, record_id, n_heavy_atoms in parameter_ids:
-                coverage[parameter_id] += 1
-                parameter_records[parameter_id].append(
-                    (n_heavy_atoms, record_id)
-                )
+    for parameter_ids in tqdm.tqdm(
+        map(func, records),
+        total=dataset.n_results,
+    ):
+        for parameter_id, record_id, n_heavy_atoms in parameter_ids:
+            coverage[parameter_id] += 1
+            parameter_records[parameter_id].append((n_heavy_atoms, record_id))
 
     return coverage, dict(parameter_records)
 
