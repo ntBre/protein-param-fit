@@ -671,7 +671,9 @@ def download_torsiondrive(
         )
 
     # Filter molecules that can't be assigned partial charges
-    filtered_for_charge = new_dataset.filter(ChargeCheckFilter())
+    filtered_for_charge = new_dataset.filter(
+        ChargeCheckFilter(nprocs=8, chunksize=32)
+    )
 
     if verbose:
         n = filtered_for_charge.n_results
