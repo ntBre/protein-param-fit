@@ -5,7 +5,6 @@ import multiprocessing
 import random
 from collections import Counter, defaultdict
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Literal
 
 import click
@@ -28,7 +27,11 @@ from openff.qcsubmit.results.filters import (
 )
 from openff.qcsubmit.utils import _CachedPortalClient, portal_client_manager
 from openff.toolkit import ForceField, Molecule
-from openff.toolkit.utils.exceptions import UnassignedMoleculeChargeException
+from openff.toolkit.utils.exceptions import (
+    ChargeCalculationError,
+    ConformerGenerationError,
+)
+from openff.toolkit.utils.toolkits import OpenEyeToolkitWrapper
 from qcportal.optimization import OptimizationRecord
 from qcportal.record_models import RecordStatusEnum
 from qcportal.torsiondrive import TorsiondriveRecord
@@ -41,30 +44,69 @@ QCSubmitResultCollection = (
 )
 
 
+def imap_fn(record_and_molecule):
+    """record here is actually only a record.id because the records maintain a
+    reference to a PortalClient, which cannot be pickled for multiprocessing.
+    """
+    record, molecule = record_and_molecule
+    try:
+        OpenEyeToolkitWrapper().assign_partial_charges(
+            molecule, partial_charge_method="am1bccelf10"
+        )
+    except (ChargeCalculationError, ConformerGenerationError):
+        ok = False
+    else:
+        ok = True
+
+    return record, ok
+
+
 class ChargeCheckFilter(SinglepointRecordFilter):
-    def _filter_function(
-        self,
-        result: QCSubmitResult,
-        record: QCPortalRecord,
-        molecule: Molecule,
-    ) -> bool:
-        # Some of the molecules fail charging with am1bccelf10 either
-        # because of no bccs or failed conformer generation, sometimes it
-        # cannot be captured with just the cmiles present in the record
-        # metadata, so reading from file and checking it
-        can_be_charged = True
-        try:
-            with NamedTemporaryFile(suffix=".sdf") as tmp_file:
-                molecule.to_file(tmp_file.name, "SDF")
-                molecule = Molecule.from_file(tmp_file.name)
-                molecule.assign_partial_charges(
-                    partial_charge_method="am1bccelf10"
-                )
+    nprocs: int = 1
+    chunksize: int = 1
 
-        except (UnassignedMoleculeChargeException, ValueError):
-            can_be_charged = False
+    # this is not needed now that I overrode _apply, and I need to pass along
+    # the record_id anyway, but pydantic requires it to be here
+    def _filter_function(self, result, record, molecule) -> bool:
+        raise NotImplementedError()
 
-        return can_be_charged
+    def _apply(self, result_collection):
+        """Copy of SinglepointRecordFilter._apply with added logging, progress
+        reporting, and eventually parallelism."""
+
+        all_records_and_molecules = defaultdict(list)
+
+        for record, molecule in result_collection.to_records():
+            all_records_and_molecules[record._client.address].append(
+                (record.id, molecule)
+            )
+
+        filtered_results = {}
+
+        for address, entries in result_collection.entries.items():
+            records_and_molecules = all_records_and_molecules[address]
+
+            filtered_ids = []
+            with multiprocessing.Pool(processes=self.nprocs) as p:
+                for record_id, ok in tqdm(
+                    p.imap(
+                        imap_fn,
+                        records_and_molecules,
+                        chunksize=self.chunksize,
+                    ),
+                    total=len(records_and_molecules),
+                    desc="Filtering charge errors",
+                ):
+                    if ok:
+                        filtered_ids.append(record_id)
+
+            filtered_results[address] = [
+                entry for entry in entries if entry.record_id in filtered_ids
+            ]
+
+        result_collection.entries = filtered_results
+
+        return result_collection
 
 
 def check_torsion_is_in_ring(
