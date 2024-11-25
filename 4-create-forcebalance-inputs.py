@@ -188,6 +188,13 @@ def load_training_data(
     help="The weight of TorsionDrive targets in the ForceBalance objective "
         "function.",
 )
+@click.option(
+    "--proper-torsion-prior",
+    type=float,
+    default=5.0,
+    show_default=True,
+    help="ProperTorsion prior for ForceBalance."
+)
 def main(
     tag: str,
     force_field_path: str,
@@ -205,6 +212,7 @@ def main(
     port: int,
     torsiondrive_target_type: str,
     torsiondrive_weight: float,
+    proper_torsion_prior: float,
 ):
     optimizer = ForceBalanceSchema(
         max_iterations=max_iterations,
@@ -360,7 +368,7 @@ def main(
                 parameter_hyperparameters=[
                     AngleHyperparameters(priors={"k": 100, "angle": 5}),
                     BondHyperparameters(priors={"k": 100, "length": 0.1}),
-                    ProperTorsionHyperparameters(priors={"k": 5}),
+                    ProperTorsionHyperparameters(priors={"k": proper_torsion_prior}),
                     ImproperTorsionHyperparameters(priors={"k": 5}),
                 ],
             )
